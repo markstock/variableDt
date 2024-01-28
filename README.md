@@ -10,7 +10,9 @@ On my desktop, I can build and run this with
 	./variableDt.bin
 
 ## Results
-For random time steps, average errors over 1000 runs.
+Integrating a cosine curve from 0 to pi, sign sin(t) for velocity. For random time steps, average errors over 1000 runs.
+
+![Error vs. time step, Cosine-follower](velsine.png)
 
 | dt     | nsteps | error at t=pi
 |--------|--------|------------------
