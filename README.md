@@ -14,19 +14,6 @@ Integrating a cosine curve from 0 to pi, sign sin(t) for velocity. For random ti
 
 ![Error vs. time step, Cosine-follower](velsine.png)
 
-| dt     | nsteps | error at t=pi
-|--------|--------|------------------
-| 0.25x  | 400    | 2.42235302603e-07
-|.25-.5x | 266    | 2.506076118e-06
-| 0.5x   | 200    | 1.93785245233e-06
-| 0.5-1x | 133    | 1.55209519912e-05
-|  1x    | 100    | 1.55018632991e-05
-| 1-2x   |  67    | 8.95219785452e-05
-|  2x    |  50    | 0.000123984309467
-| 2-4x   |  34    | 0.000579527912957
-|  4x    |  25    | 0.000990895856874
-| 4-8x   |  17    | 0.003884942807
-
 Variable time stepping appears to achieve roughly the same error rate as constant-size
 time steps of the same upper bound.
 But while the constant-step-size AB2 achieves 3rd order (error drops 8x per 2x reduction in dt),
