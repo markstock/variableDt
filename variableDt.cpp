@@ -46,8 +46,6 @@ T run_ab2 (CosineSystem<T>& _system, const double _basedt,
 
   int32_t istep = 0;
   double time = _system.tstart;
-  // debug
-  //std::cout << istep << "\t" << std::setw(15) << std::setprecision(12) << time << "\t" << x[1] << "\n";
   while (time < _system.tend - 1.e-10) {
 
     // determine "velocity" at this time
@@ -80,16 +78,16 @@ T run_ab2 (CosineSystem<T>& _system, const double _basedt,
 }
 
 template<typename T>
-T run_ab3 (const double _tstart, const double _tend, const double _basedt,
+T run_ab3 (CosineSystem<T>& _system, const double _basedt,
            const bool _is_rand_dt, std::mt19937& _gen, const bool _silent) {
 
   // each step needs a dt, value (x), and derivative
   // dt[i] is the time step size for the step just before x[i]
   std::array<T,3> dt, x, dxdt;
-  double init_time = 0.0;
+  double init_time = _system.tstart;
   for (int32_t i=2; i>-1; --i) {
-    x[i]    = std::sin(init_time);
-    dxdt[i] = std::cos(init_time);
+    x[i]    = _system.solution_at_time(init_time);
+    dxdt[i] = _system.vel_at_time(init_time);
     dt[i]   = _basedt;
     init_time -= dt[i];
   }
@@ -97,16 +95,16 @@ T run_ab3 (const double _tstart, const double _tend, const double _basedt,
   std::uniform_real_distribution<T> onetotwo(1.0, 2.0);
 
   int32_t istep = 0;
-  double time = _tstart;
-  while (time < _tend - 1.e-10) {
+  double time = _system.tstart;
+  while (time < _system.tend - 1.e-10) {
 
     // determine "velocity" at this time
-    dxdt[2] = std::cos(time);
+    dxdt[2] = _system.vel_at_time(time);
 
     // take a new step forward with this dt
     T this_dt = _basedt;
     if (_is_rand_dt) this_dt *= onetotwo(_gen);
-    if (time + this_dt > _tend) this_dt = _tend - time;
+    if (time + this_dt > _system.tend) this_dt = _system.tend - time;
 
     // constant-dt AB3:
     //const T cfactor = ((T)23.*dxdt[2]-(T)16.*dxdt[1]+(T)5.*dxdt[0]) / (T)12.;
@@ -134,11 +132,11 @@ T run_ab3 (const double _tstart, const double _tend, const double _basedt,
   }
   if (not _silent) std::cout << istep << "\t" << std::setw(15) << std::setprecision(12) << time << "\t" << x[2] << "\n";
 
-  return std::abs(x[2]);
+  return std::abs(x[2] - _system.solution_at_time(_system.tend));
 }
 
 template<typename T>
-T run_ab4 (const double _tstart, const double _tend, const double _basedt,
+T run_ab4 (CosineSystem<T>& _system, const double _basedt,
            const bool _is_rand_dt, std::mt19937& _gen, const bool _silent) {
 
   // each step needs a dt, value (x), and derivative
@@ -146,8 +144,8 @@ T run_ab4 (const double _tstart, const double _tend, const double _basedt,
   std::array<T,4> dt, x, dxdt;
   double init_time = 0.0;
   for (int32_t i=3; i>-1; --i) {
-    x[i]    = std::sin(init_time);
-    dxdt[i] = std::cos(init_time);
+    x[i]    = _system.solution_at_time(init_time);
+    dxdt[i] = _system.vel_at_time(init_time);
     dt[i]   = _basedt;
     init_time -= dt[i];
   }
@@ -155,16 +153,17 @@ T run_ab4 (const double _tstart, const double _tend, const double _basedt,
   std::uniform_real_distribution<T> onetotwo(1.0, 2.0);
 
   int32_t istep = 0;
-  double time = _tstart;
-  while (time < _tend - 1.e-10) {
+  double time = _system.tstart;
+
+  while (time < _system.tend - 1.e-10) {
 
     // determine "velocity" at this time
-    dxdt[3] = std::cos(time);
+    dxdt[3] = _system.vel_at_time(time);
 
     // take a new step forward with this dt
     T this_dt = _basedt;
     if (_is_rand_dt) this_dt *= onetotwo(_gen);
-    if (time + this_dt > _tend) this_dt = _tend - time;
+    if (time + this_dt > _system.tend) this_dt = _system.tend - time;
 
     // constant-dt AB4 (8 flops):
     const double cfactor = ((T)55.*dxdt[3]-(T)59.*dxdt[2]+(T)37.*dxdt[1]-(T)9.*dxdt[0]) / (T)24.0;
@@ -202,14 +201,10 @@ T run_ab4 (const double _tstart, const double _tend, const double _basedt,
   }
   if (not _silent) std::cout << istep << "\t" << std::setw(15) << std::setprecision(12) << time << "\t" << x[3] << "\n";
 
-  return std::abs(x[3]);
+  return std::abs(x[3] - _system.solution_at_time(_system.tend));
 }
 
 int main(int argc, char *argv[]) {
-
-  double tstart = 0.0;
-  double tend = std::numbers::pi_v<double>;
-  double basedt = tend / 80.0;
 
   // random number stuff
   std::mt19937 gen(12345);
@@ -220,11 +215,11 @@ int main(int argc, char *argv[]) {
   // uniform dt
 
   std::cout << "Constant dt, AB2:\n";
-  basedt = tend / 10.0;
+  double basedt = sys.tend / 10.0;
   double lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
     double thiserr = run_ab2<double>(sys, basedt, false, gen, true);
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "\t" << thiserr;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "\t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
@@ -232,11 +227,11 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Constant dt, AB3:\n";
-  basedt = tend / 10.0;
+  basedt = sys.tend / 10.0;
   lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
-    double thiserr = run_ab3<double>(tstart, tend, basedt, false, gen, true);
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "\t" << thiserr;
+    double thiserr = run_ab3<double>(sys, basedt, false, gen, true);
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "\t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
@@ -244,11 +239,11 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Constant dt, AB4:\n";
-  basedt = tend / 10.0;
+  basedt = sys.tend / 10.0;
   lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
-    double thiserr = run_ab4<double>(tstart, tend, basedt, false, gen, true);
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "\t" << thiserr;
+    double thiserr = run_ab4<double>(sys, basedt, false, gen, true);
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "\t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
@@ -259,7 +254,7 @@ int main(int argc, char *argv[]) {
   const int32_t maxsims = 1000;
 
   std::cout << "Variable dt, AB2:\n";
-  basedt = tend / 10.0;
+  basedt = sys.tend / 10.0;
   lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
     double errsum = 0.0;
@@ -267,7 +262,7 @@ int main(int argc, char *argv[]) {
       errsum += run_ab2<double>(sys, basedt, true, gen, true);
     }
     double thiserr = errsum/maxsims;
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "-" << int32_t(0.5+2.*sys.tend/basedt) << "  \t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
@@ -275,15 +270,15 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Variable dt, AB3:\n";
-  basedt = tend / 10.0;
+  basedt = sys.tend / 10.0;
   lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
     double errsum = 0.0;
     for (int32_t istep=0; istep<maxsims; ++istep) {
-      errsum += run_ab3<double>(tstart, tend, basedt, true, gen, true);
+      errsum += run_ab3<double>(sys, basedt, true, gen, true);
     }
     double thiserr = errsum/maxsims;
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "-" << int32_t(0.5+2.*sys.tend/basedt) << "  \t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
@@ -291,15 +286,15 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Variable dt, AB4:\n";
-  basedt = tend / 10.0;
+  basedt = sys.tend / 10.0;
   lasterr = 0.0;
   for (int32_t isim=0; isim<6; ++isim) {
     double errsum = 0.0;
     for (int32_t istep=0; istep<maxsims; ++istep) {
-      errsum += run_ab4<double>(tstart, tend, basedt, true, gen, true);
+      errsum += run_ab4<double>(sys, basedt, true, gen, true);
     }
     double thiserr = errsum/maxsims;
-    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+sys.tend/basedt) << "-" << int32_t(0.5+2.*sys.tend/basedt) << "  \t" << thiserr;
     if (isim != 0) std::cout << "\t" << lasterr/thiserr;
     std::cout << "\n";
     lasterr = thiserr;
