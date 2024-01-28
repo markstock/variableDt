@@ -216,10 +216,9 @@ int main(int argc, char *argv[]) {
 
   // a simple dynamic system
   CosineSystem<double> sys;
-  //double testerr = run_ab2<double>(sys, basedt, false, gen, false);
-  //std::cout << "test run error " << testerr << "\n";
 
-  // run the simulation once with uniform dt
+  // uniform dt
+
   std::cout << "Constant dt, AB2:\n";
   basedt = tend / 10.0;
   double lasterr = 0.0;
@@ -256,27 +255,54 @@ int main(int argc, char *argv[]) {
     basedt *= 0.5;
   }
 
-  // then run multiple times with randomized dt
+  // variable dt
   const int32_t maxsims = 1000;
+
   std::cout << "Variable dt, AB2:\n";
-  double errsum = 0.0;
-  for (int32_t istep=0; istep<maxsims; ++istep) {
-    errsum += run_ab2<double>(sys, basedt, true, gen, true);
+  basedt = tend / 10.0;
+  lasterr = 0.0;
+  for (int32_t isim=0; isim<6; ++isim) {
+    double errsum = 0.0;
+    for (int32_t istep=0; istep<maxsims; ++istep) {
+      errsum += run_ab2<double>(sys, basedt, true, gen, true);
+    }
+    double thiserr = errsum/maxsims;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    if (isim != 0) std::cout << "\t" << lasterr/thiserr;
+    std::cout << "\n";
+    lasterr = thiserr;
+    basedt *= 0.5;
   }
-  std::cout << "\tmean error " << errsum/maxsims << "\n";
 
   std::cout << "Variable dt, AB3:\n";
-  errsum = 0.0;
-  for (int32_t istep=0; istep<maxsims; ++istep) {
-    errsum += run_ab3<double>(tstart, tend, basedt, true, gen, true);
+  basedt = tend / 10.0;
+  lasterr = 0.0;
+  for (int32_t isim=0; isim<6; ++isim) {
+    double errsum = 0.0;
+    for (int32_t istep=0; istep<maxsims; ++istep) {
+      errsum += run_ab3<double>(tstart, tend, basedt, true, gen, true);
+    }
+    double thiserr = errsum/maxsims;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    if (isim != 0) std::cout << "\t" << lasterr/thiserr;
+    std::cout << "\n";
+    lasterr = thiserr;
+    basedt *= 0.5;
   }
-  std::cout << "\tmean error " << errsum/maxsims << "\n";
 
   std::cout << "Variable dt, AB4:\n";
-  errsum = 0.0;
-  for (int32_t istep=0; istep<maxsims; ++istep) {
-    errsum += run_ab4<double>(tstart, tend, basedt, true, gen, true);
+  basedt = tend / 10.0;
+  lasterr = 0.0;
+  for (int32_t isim=0; isim<6; ++isim) {
+    double errsum = 0.0;
+    for (int32_t istep=0; istep<maxsims; ++istep) {
+      errsum += run_ab4<double>(tstart, tend, basedt, true, gen, true);
+    }
+    double thiserr = errsum/maxsims;
+    std::cout << std::setw(12) << std::setprecision(8) << int32_t(0.5+tend/basedt) << "-" << int32_t(0.5+2.*tend/basedt) << "  \t" << thiserr;
+    if (isim != 0) std::cout << "\t" << lasterr/thiserr;
+    std::cout << "\n";
+    lasterr = thiserr;
+    basedt *= 0.5;
   }
-  std::cout << "\tmean error " << errsum/maxsims << "\n";
-
 }
